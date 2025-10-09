@@ -1,0 +1,18 @@
+[project]
+name = "crispy_sleep"
+version = "0.1.0"
+description = "Light control/sleep tracking"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cronsim>=2.6",
+    "dotenv>=0.9.9",
+    "pysomneoctrl>=1.0.4",
+    "python-dateutil>=2.9.0.post0",
+    "requests>=2.32.5",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+]

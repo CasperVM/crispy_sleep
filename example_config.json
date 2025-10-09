@@ -1,0 +1,22 @@
+{
+    "USB_LIGHT": true,
+    "WINDDOWNS": [
+        {
+            "cron": "30 21 * * 1-5",
+            "durationInMinutes": 60, 
+            "ctype": 3
+        },
+        {
+            "cron": "30 23 * * 6-7",
+            "durationInMinutes": 60,
+            "ctype": 3
+        }
+    ],
+    "SUNRISES": [
+        {
+            "cron": "30 6 * * 1-5",
+            "durationInMinutes": "60",
+            "ctype": 2
+        }
+    ]
+}
