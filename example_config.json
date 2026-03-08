@@ -1,22 +1,17 @@
 {
-    "USB_LIGHT": true,
-    "WINDDOWNS": [
-        {
-            "cron": "30 21 * * 1-5",
-            "durationInMinutes": 60, 
-            "ctype": 3
-        },
-        {
-            "cron": "30 23 * * 6-7",
-            "durationInMinutes": 60,
-            "ctype": 3
-        }
-    ],
-    "SUNRISES": [
-        {
-            "cron": "30 6 * * 1-5",
-            "durationInMinutes": "60",
-            "ctype": 2
-        }
-    ]
+  "signal_bot_enabled": false,
+  "winddowns": [
+    {
+      "cron": "0 22 * * *",
+      "durationInMinutes": 30,
+      "ctype": 3
+    }
+  ],
+  "sunrises": [
+    {
+      "cron": "0 7 * * 1-5",
+      "durationInMinutes": 30,
+      "ctype": 2
+    }
+  ]
 }

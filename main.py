@@ -1,150 +1,187 @@
 #!/usr/bin/env python3
 import asyncio
-import sys
+import logging
+from datetime import datetime, timedelta, timezone
+
 from pysomneoctrl import SomneoDevice
+
+from db import init_db, get_conn, is_scheduling_enabled
 from devices.somneo import bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
-from env_conf import *
-from utils.dateutil import sleep_until_cron
+from gcal import poll_gcal
+from scheduler import get_next_event
+from env_conf import SOMNEO_IP, USB_LIGHT, SIGNAL_BOT_ENABLED
+from signal_bot import run_signal_bot
+from api import run_api
+
+logger = logging.getLogger(__name__)
+
+# Light routines
+
+
+async def turn_off_somneo(somneo):
+    await bedlight(somneo, False)
+
+
+async def _check_abort(somneo):
+    """If scheduling was disabled mid-routine, kill everything and return True."""
+    if not is_scheduling_enabled():
+        await bedlight(somneo, False)
+        if USB_LIGHT:
+            await usb_off()
+        return True
+    return False
 
 
 async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
-    """
-    Gradually dims the Somneo bedlight from start -> end brightness over duration.
+    """Gradually dims Somneo from start → end brightness over duration_minutes."""
+    steps = start - end
+    if steps <= 0:
+        logger.warning("winddown: start must be greater than end")
+        return
 
-    somneo: SomneoDevice instance
-    start: starting brightness (int)
-    end: final brightness (int, usually 0)
-    duration_minutes: total time for dimming
-    ctype: light type/color
-    """
     if USB_LIGHT:
         await blink_notify()
 
-    await bedlight(somneo, True, brightness=1, ctype=3)
-    # Turn this on first, might be wrong color initially? (BUG)
+    # Turn on first.. might be wrong color initially? (BUG)
+    await bedlight(somneo, True, brightness=1, ctype=ctype)
     await asyncio.sleep(10)
 
-    steps = start - end
-    if steps <= 0:
-        print("Start must be greater than end")
-        return
+    step_time = (duration_minutes * 60) / steps
+    logger.info(f"Wind-down: {start} → {end} over {duration_minutes} min")
 
-    total_seconds = duration_minutes * 60
-    step_time = total_seconds / steps  # seconds per brightness step
-
-    print(f"Starting wind-down: {start} -> {end} over {duration_minutes} min")
-
-    current = start
-    while current > end:
+    for current in range(start, end, -1):
         await bedlight(somneo, True, brightness=current, ctype=ctype)
         await asyncio.sleep(step_time)
-        if current < 10:
+
+        if current < 10 and USB_LIGHT:
             await usb_off()
-        current -= 1
 
-    # Turn off when done
-    bedlight(somneo, False)
-    print("Wind-down complete. Light off.")
+        if await _check_abort(somneo):
+            return
 
-    # turn off
+    await bedlight(somneo, False)
     if USB_LIGHT:
         await usb_off()
+    logger.info("Wind-down complete.")
 
 
 async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
-    """Gradually increases light to simulate sunrise."""
-    await bedlight(somneo, True, brightness=start, ctype=ctype)
+    """Gradually brightens Somneo from start → end to simulate sunrise."""
     steps = end - start
-    step_time = (duration_minutes * 60) / steps
+    if steps <= 0:
+        logger.warning("sunrise: end must be greater than start")
+        return
 
-    print(f"Sunrise: {start} -> {end} over {duration_minutes} min")
+    step_time = (duration_minutes * 60) / steps
+    logger.info(f"Sunrise: {start} → {end} over {duration_minutes} min")
+
     for current in range(start, end + 1):
         await bedlight(somneo, True, brightness=current, ctype=ctype)
         await asyncio.sleep(step_time)
 
-    print("Sunrise complete.")
+        if await _check_abort(somneo):
+            return
+
     if USB_LIGHT:
         await usb_on()
+    logger.info("Sunrise complete.")
 
 
-async def winddown_job(somneo, wd):
-    """Runs forever, executing at each cron tick."""
-    cron = wd["cron"]
+# Dispatcher
+
+ROUTINES = {"winddown": winddown, "sunrise": sunrise}
+
+
+async def event_dispatcher(somneo):
+    """
+    Every 30s, checks both event types for due events and fires them.
+    Deduplicates by (event_type, trigger minute) so nothing fires twice.
+    """
+    fired: set[tuple[str, str]] = set()
+
     while True:
-        await sleep_until_cron(cron)
-        print(f"[WINDDOWN] Triggering {cron}")
-        await winddown(
-            somneo,
-            duration_minutes=int(wd["durationInMinutes"]),
-            ctype=int(wd["ctype"]),
-        )
+        # logger.info("Checking events")
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        window_end = now + timedelta(seconds=30)
 
+        for etype, fn in ROUTINES.items():
+            ev = get_next_event(etype)
+            if not ev:
+                # logger.info("Skipping1")
+                continue
+            # print(ev)
 
-async def sunrise_job(somneo, sr):
-    """Runs forever, executing at each cron tick."""
-    cron = sr["cron"]
-    while True:
-        await sleep_until_cron(cron)
-        print(f"[SUNRISE] Triggering {cron}")
-        await sunrise(
-            somneo,
-            duration_minutes=int(sr["durationInMinutes"]),
-            ctype=int(sr["ctype"]),
-        )
+            trigger_at = datetime.fromisoformat(ev["trigger_at"])
+            if trigger_at > window_end:
+                # logger.info("Skipping2")
+                continue
 
+            key = (etype, trigger_at.strftime("%Y-%m-%d %H:%M"))
+            if key in fired:
+                # logger.info("Skipping3")
+                continue
 
-async def schedule_winddowns(somneo):
-    while True:
-        for wd in WINDDOWNS:
-            await sleep_until_cron(wd["cron"])
-            await winddown(
-                somneo,
-                duration_minutes=int(wd["durationInMinutes"]),
-                ctype=int(wd["ctype"]),
+            fired.add(key)
+            # Prune keys older than 2 h
+            cutoff = (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M")
+            fired = {k for k in fired if k[1] >= cutoff}
+
+            logger.info(
+                f"[{ev['source'].upper()}] Firing {etype} @ {trigger_at.astimezone().strftime('%H:%M')}"
             )
 
+            # Mark signal override as done
+            if ev.get("id") and ev.get("source") == "signal":
+                with get_conn() as conn:
+                    conn.execute(
+                        "UPDATE overrides SET status='done' WHERE id=?", (ev["id"],)
+                    )
 
-async def schedule_sunrises(somneo):
-    while True:
-        for sr in SUNRISES:
-            await sleep_until_cron(sr["cron"])
-            await sunrise(
-                somneo,
-                duration_minutes=int(sr["durationInMinutes"]),
-                ctype=int(sr["ctype"]),
+            asyncio.create_task(
+                fn(
+                    somneo,
+                    duration_minutes=int(ev.get("duration_minutes") or 30),
+                    ctype=int(ev.get("ctype") or (3 if etype == "winddown" else 2)),
+                )
             )
+
+        await asyncio.sleep(15)
+
+
+# Entry point
 
 
 async def main():
+    init_db()
     somneo = SomneoDevice(ip=SOMNEO_IP)
+    logger.info("crispy_sleep 🌙 starting up")
+    await turn_off_somneo(somneo)
 
     tasks = [
-        # asyncio.create_task(winddown(somneo, duration_minutes=45)),
-        asyncio.create_task(track_sensors(somneo))
+        track_sensors(somneo),
+        poll_gcal(),
+        event_dispatcher(somneo),
+        run_api(somneo),
     ]
 
-    for wd in WINDDOWNS:
-        tasks.append(asyncio.create_task(winddown_job(somneo, wd)))
-    for sr in SUNRISES:
-        tasks.append(asyncio.create_task(sunrise_job(somneo, sr)))
-
-    # FIXME; we don't care for now..
-    # for sig in (signal.SIGINT, signal.SIGTERM):
-    #     asyncio.get_event_loop().add_signal_handler(sig, lambda: asyncio.create_task(shutdown(tasks)))
+    if SIGNAL_BOT_ENABLED:
+        tasks.append(run_signal_bot(somneo))
+    else:
+        logger.info(
+            "Signal bot disabled: set signal_bot_enabled: true in config.json to enable"
+        )
 
     await asyncio.gather(*tasks)
 
 
-async def shutdown(tasks):
-    print("\n[!] Received shutdown signal. Cancelling tasks...")
-    for t in tasks:
-        t.cancel()  # FIXME; Doesnt work?
-    await asyncio.gather(*tasks, return_exceptions=True)
-    print("[!] Shutdown complete.")
-    sys.exit(0)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    asyncio.run(main())

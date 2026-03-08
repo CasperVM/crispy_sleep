@@ -31,6 +31,6 @@ async def sleep_until_cron(cron_expr: str):
     next_time = next_from_cron(cron_expr)
     delta = (next_time - datetime.now(tz=tz.tzlocal())).total_seconds()
     print(
-        f"[i] Sleeping until {next_time.strftime('%Y-%m-%d %H:%M:%S')} ({delta/60:.1f} min)"
+        f"[i] Sleeping until {next_time.strftime('%Y-%m-%d %H:%M:%S')} ({delta / 60:.1f} min)"
     )
     await asyncio.sleep(max(0, delta))

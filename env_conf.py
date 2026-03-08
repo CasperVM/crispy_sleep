@@ -1,19 +1,30 @@
-import os
-from typing import Literal
-from dotenv import load_dotenv
 import json
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
-CONFIG_JSON = None
+# Somneo
+SOMNEO_IP = os.environ["SOMNEO_IP"]
+USB_LIGHT = os.getenv("USB_LIGHT", "false").lower() == "true"
 
-with open("config.json") as f:
-    CONFIG_JSON = json.loads("\n".join(f.readlines()))
+# Google Calendar
+GCAL_CALENDAR_ID = os.getenv("GCAL_CALENDAR_ID", "primary")
+GCAL_CREDENTIALS_FILE = os.getenv("GCAL_CREDENTIALS_FILE", "credentials.json")
+GCAL_TOKEN_FILE = os.getenv("GCAL_TOKEN_FILE", "token.json")
 
-gradient_keys = Literal["cron", "durationInMinutes", "ctype"]
+# Signal
+SIGNAL_CLI_URL = os.getenv("SIGNAL_CLI_URL", "http://127.0.0.1:8080")
+SIGNAL_PHONE = os.environ["SIGNAL_PHONE"]
+SIGNAL_ALLOWED_SENDERS = [
+    s.strip() for s in os.getenv("SIGNAL_ALLOWED_SENDERS", "").split(",") if s.strip()
+]
+SIGNAL_PREFIX = os.getenv("SIGNAL_PREFIX", ".")
 
-SOMNEO_IP: str = os.getenv("SOMNEO_IP")
+# Config file (fallback schedule)
+with open("config.json") as _f:
+    _cfg = json.load(_f)
 
-USB_LIGHT: bool = CONFIG_JSON["USB_LIGHT"]
-WINDDOWNS: list[dict[gradient_keys, str]] = CONFIG_JSON["WINDDOWNS"]
-SUNRISES: list[dict[gradient_keys, str]] = CONFIG_JSON["SUNRISES"]
+SIGNAL_BOT_ENABLED = _cfg.get("signal_bot_enabled", True)
+WINDDOWNS = _cfg.get("winddowns", [])
+SUNRISES = _cfg.get("sunrises", [])

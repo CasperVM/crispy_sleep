@@ -1,12 +1,16 @@
-from datetime import datetime
-import time
+import logging
+import asyncio
+from datetime import datetime, timezone
+
 from pysomneoctrl import SomneoDevice
 
+from db import get_conn
 from utils.asyncutil import run_in_executor
 
-# TODO: rewrite pysomneoctrl to contain async as well?
-# - maybe new project + git submod?
-# - both interfaces: blocking, non-blocking...
+logger = logging.getLogger(__name__)
+
+SENSOR_INTERVAL = 10
+SENSOR_RETRY = 30
 
 
 @run_in_executor
@@ -14,24 +18,47 @@ def bedlight(somneo: SomneoDevice, *args, **kwargs):
     somneo.bedlight(*args, **kwargs)
 
 
+def _store_sensors(data: dict):
+    """
+    Map raw sensor keys to DB columns and insert a row.
+    e.g.;
+    {'mslux': 280.2, 'mstmp': 22, 'msrhu': 35.7, 'mssnd': 35, 'avlux': 627, 'avtmp': 22, 'avrhu': 36, 'avsnd': 30}
+    """
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO sensor_log (temperature, humidity, lux, lux_avg, sound, sound_avg, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                data.get("mstmp"),
+                data.get("msrhu"),
+                data.get("mslux"),
+                data.get("avlux"),
+                data.get("mssnd"),
+                data.get("avsnd"),
+                datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            ),
+        )
+
+
 async def track_sensors(somneo: SomneoDevice):
-    """Poll sensor data forever (for Grafana etc.)"""
+    """Poll Somneo sensors forever and persist to SQLite."""
 
     @run_in_executor
-    def run():
-        while True:
-            try:
-                somneo.update_sensors()
-                data = somneo.sensor_data
-                logline = f"[SENSORS] {datetime.now()} => {data}\n"
-                print(logline, end="")
+    def update_sensors():
+        somneo.update_sensors()
 
-                # For now I guess we just dump to a log txt.
-                with open("log.txt", "a") as f:
-                    f.write(logline)
-                # TODO: push to Psql...
-            except Exception as e:
-                print(f"[SENSORS] Error: {e}")
-            time.sleep(10)  # TODO add interval.
+    while True:
+        try:
+            await update_sensors()
+            data = somneo.sensor_data
+            _store_sensors(data)
 
-    await run()
+            await asyncio.sleep(SENSOR_INTERVAL)
+
+        except Exception as e:
+            logger.warning(
+                f"[SENSORS] Error reading sensors, retrying in {SENSOR_RETRY}s: {e}"
+            )
+            await asyncio.sleep(SENSOR_RETRY)

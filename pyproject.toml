@@ -1,12 +1,17 @@
 [project]
 name = "crispy_sleep"
-version = "0.1.0"
+version = "0.2.0"
 description = "Light control/sleep tracking"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "aiohttp>=3.9",
     "cronsim>=2.6",
     "dotenv>=0.9.9",
+    "google-api-python-client>=2.0",
+    "google-auth-httplib2>=0.2",
+    "google-auth-oauthlib>=1.2",
+    "python-dotenv>=1.0",
     "pysomneoctrl>=1.0.4",
     "python-dateutil>=2.9.0.post0",
     "requests>=2.32.5",

@@ -211,3 +211,7 @@ __marimo__/
 
 log.txt
 config.json
+.env
+credentials.json
+token.json
+crispy_sleep.db
