@@ -6,15 +6,31 @@ from datetime import datetime, timedelta, timezone
 from db import init_db, is_scheduling_enabled
 from devices.somneo import SomneoHolder, bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
-from devices.kaku import plug_on, plug_off
+from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP
 from api import run_api
 
 logger = logging.getLogger(__name__)
 
 # Light routines
+
+
+async def _kaku_on():
+    if KAKU_USE_GROUP:
+        await plug_group_on()
+    else:
+        for unit in KAKU_UNITS:
+            await plug_on(unit)
+
+
+async def _kaku_off():
+    if KAKU_USE_GROUP:
+        await plug_group_off()
+    else:
+        for unit in KAKU_UNITS:
+            await plug_off(unit)
 
 
 async def turn_off_somneo(somneo):
@@ -27,8 +43,7 @@ async def _check_abort(somneo):
         await bedlight(somneo, False)
         if USB_LIGHT:
             await usb_off()
-        for unit in KAKU_UNITS:
-            await plug_off(unit)
+        await _kaku_off()
         return True
     return False
 
@@ -42,8 +57,7 @@ async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
 
     if USB_LIGHT:
         await blink_notify()
-    for unit in KAKU_UNITS:
-        await plug_on(unit)
+    await _kaku_on()
 
     # Turn on first.. might be wrong color initially? (BUG)
     await bedlight(somneo, True, brightness=1, ctype=ctype)
@@ -65,8 +79,7 @@ async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
     await bedlight(somneo, False)
     if USB_LIGHT:
         await usb_off()
-    for unit in KAKU_UNITS:
-        await plug_off(unit)
+    await _kaku_off()
     logger.info("Wind-down complete.")
 
 
@@ -89,8 +102,7 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
 
     if USB_LIGHT:
         await usb_on()
-    for unit in KAKU_UNITS:
-        await plug_on(unit)
+    await _kaku_on()
     logger.info("Sunrise complete.")
 
 
