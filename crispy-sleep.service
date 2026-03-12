@@ -1,0 +1,16 @@
+[Unit]
+Description=Crispy Sleep light controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=casper
+WorkingDirectory=/home/casper/crispy_sleep
+ExecStart=/home/casper/.local/bin/uv run main.py
+Restart=on-failure
+RestartSec=5
+#EnvironmentFile=/home/casper/crispy_sleep/.env
+
+[Install]
+WantedBy=multi-user.target

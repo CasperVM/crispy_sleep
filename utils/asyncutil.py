@@ -2,7 +2,7 @@ import asyncio
 import functools
 
 
-def run_in_executor(f=None, *, timeout=10):
+def run_in_executor(f=None, *, timeout=20):
     def decorator(func):
         @functools.wraps(func)
         async def inner(*args, **kwargs):

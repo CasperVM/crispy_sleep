@@ -1,0 +1,16 @@
+[Unit]
+Description=Crispy Sleep Grafana stack
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=casper
+WorkingDirectory=/home/casper/crispy_sleep/grafana
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

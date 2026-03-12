@@ -3,10 +3,8 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from pysomneoctrl import SomneoDevice
-
 from db import init_db, get_conn, is_scheduling_enabled
-from devices.somneo import bedlight, track_sensors
+from devices.somneo import SomneoHolder, bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from gcal import poll_gcal
 from scheduler import get_next_event
@@ -154,7 +152,7 @@ async def event_dispatcher(somneo):
 
 async def main():
     init_db()
-    somneo = SomneoDevice(ip=SOMNEO_IP)
+    somneo = SomneoHolder(ip=SOMNEO_IP)
     logger.info("crispy_sleep 🌙 starting up")
     await turn_off_somneo(somneo)
 

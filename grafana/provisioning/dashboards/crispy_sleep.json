@@ -28,9 +28,9 @@
         "x": 0,
         "y": 0
       },
-      "id": 20,
+      "id": 36,
       "panels": [],
-      "title": "Controls",
+      "title": "Somneo Controls",
       "type": "row"
     },
     {
@@ -71,7 +71,7 @@
           "elementDisplayMode": "modified",
           "title": "Confirm update request"
         },
-        "elementValueChanged": "",
+        "elementValueChanged": "context.panel.enableSubmit();",
         "elements": [
           {
             "id": "brightness",
@@ -109,7 +109,7 @@
           }
         ],
         "initial": {
-          "code": "",
+          "code": "context.panel.enableSubmit();",
           "contentType": "application/json",
           "getPayload": "return {}",
           "highlight": false,
@@ -161,7 +161,7 @@
           "payloadMode": "all",
           "url": "http://turnip.lan:8091/api/light"
         },
-        "updateEnabled": "auto"
+        "updateEnabled": "manual"
       },
       "pluginVersion": "6.3.1",
       "targets": [
@@ -219,7 +219,7 @@
         },
         "elementValueChanged": "",
         "initial": {
-          "code": "",
+          "code": "context.panel.enableSubmit();",
           "contentType": "application/json",
           "getPayload": "return {}",
           "highlight": false,
@@ -271,7 +271,7 @@
           "payloadMode": "all",
           "url": "http://turnip.lan:8091/api/light/off"
         },
-        "updateEnabled": "auto"
+        "updateEnabled": "manual"
       },
       "pluginVersion": "6.3.1",
       "targets": [
@@ -287,6 +287,406 @@
       ],
       "title": "Light Off",
       "type": "volkovlabs-form-panel"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 20,
+      "panels": [],
+      "title": "Plug Controls",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "P536889FD585DC862"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "id": 32,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "lg"
+        },
+        "confirmModal": {
+          "body": "Please confirm to update changed values",
+          "cancel": "Cancel",
+          "columns": {
+            "include": [
+              "name",
+              "oldValue",
+              "newValue"
+            ],
+            "name": "Label",
+            "newValue": "New Value",
+            "oldValue": "Old Value"
+          },
+          "confirm": "Confirm",
+          "elementDisplayMode": "modified",
+          "title": "Confirm update request"
+        },
+        "elementValueChanged": "context.panel.enableSubmit();",
+        "elements": [
+          {
+            "id": "unit",
+            "labelWidth": 10,
+            "options": [
+              {
+                "id": "1",
+                "label": "Left bedroom",
+                "type": "string",
+                "value": "1"
+              },
+              {
+                "id": "0",
+                "label": "Right bedroom",
+                "type": "string",
+                "value": "0"
+              }
+            ],
+            "title": "Unit",
+            "type": "radio",
+            "uid": "unit",
+            "value": "0"
+          },
+          {
+            "id": "action",
+            "labelWidth": 10,
+            "options": [
+              {
+                "id": "on",
+                "label": "On",
+                "type": "string",
+                "value": "on"
+              },
+              {
+                "id": "off",
+                "label": "Off",
+                "type": "string",
+                "value": "off"
+              }
+            ],
+            "title": "Action",
+            "type": "radio",
+            "uid": "action",
+            "value": "on"
+          }
+        ],
+        "initial": {
+          "code": "context.panel.enableSubmit();",
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "-",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "backgroundColor": "purple",
+          "foregroundColor": "yellow",
+          "icon": "process",
+          "text": "Reset",
+          "variant": "hidden"
+        },
+        "resetAction": {
+          "code": "if (context.panel.response) {\n  context.grafana.notifySuccess(['Update', 'Values updated successfully.']);\n  context.grafana.refresh();\n} else {\n  context.grafana.notifyError(['Update', 'An error occurred updating values.']);\n}",
+          "confirm": false,
+          "getPayload": "return {}",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "backgroundColor": "orange",
+          "foregroundColor": "white",
+          "icon": "bolt",
+          "text": "🔌 Send",
+          "variant": "primary"
+        },
+        "sync": false,
+        "update": {
+          "code": "const unit = parseInt(context.panel.elements.find(e => e.id === 'unit')?.value || '0');\nconst action = context.panel.elements.find(e => e.id === 'action')?.value || 'on';\nfetch('http://turnip.lan:8091/api/plug', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ unit, action })\n});\ncontext.grafana.notifySuccess(['Done', 'Plug ' + action + ' (unit ' + unit + ')']);",
+          "confirm": false,
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "header": [],
+          "method": "-",
+          "payload": {},
+          "payloadMode": "all",
+          "url": "http://turnip.lan:8091/api/plug"
+        },
+        "updateEnabled": "manual"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "queryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= 1773318490638 / 1000 and time < 1773340090638 / 1000",
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Plug Control",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "P536889FD585DC862"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 8
+      },
+      "id": 33,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "Please confirm to update changed values",
+          "cancel": "Cancel",
+          "columns": {
+            "include": [
+              "name",
+              "oldValue",
+              "newValue"
+            ],
+            "name": "Label",
+            "newValue": "New Value",
+            "oldValue": "Old Value"
+          },
+          "confirm": "Confirm",
+          "elementDisplayMode": "modified",
+          "title": "Confirm update request"
+        },
+        "elementValueChanged": "",
+        "initial": {
+          "code": "context.panel.enableSubmit();",
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "-",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "center",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "none"
+        },
+        "reset": {
+          "backgroundColor": "purple",
+          "foregroundColor": "yellow",
+          "icon": "process",
+          "text": "Reset",
+          "variant": "hidden"
+        },
+        "resetAction": {
+          "code": "if (context.panel.response) {\n  context.grafana.notifySuccess(['Update', 'Values updated successfully.']);\n  context.grafana.refresh();\n} else {\n  context.grafana.notifyError(['Update', 'An error occurred updating values.']);\n}",
+          "confirm": false,
+          "getPayload": "return {}",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "backgroundColor": "green",
+          "foregroundColor": "white",
+          "icon": "bolt",
+          "text": "🔌 All On",
+          "variant": "primary"
+        },
+        "sync": false,
+        "update": {
+          "code": "fetch('http://turnip.lan:8091/api/plug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit: 0, action: 'groupon' }) }); context.grafana.notifySuccess(['Done', 'All plugs on']);",
+          "confirm": false,
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "header": [],
+          "method": "-",
+          "payload": {},
+          "payloadMode": "all",
+          "url": "http://turnip.lan:8091/api/plug"
+        },
+        "updateEnabled": "manual"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Group On",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "P536889FD585DC862"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 11
+      },
+      "id": 34,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "Please confirm to update changed values",
+          "cancel": "Cancel",
+          "columns": {
+            "include": [
+              "name",
+              "oldValue",
+              "newValue"
+            ],
+            "name": "Label",
+            "newValue": "New Value",
+            "oldValue": "Old Value"
+          },
+          "confirm": "Confirm",
+          "elementDisplayMode": "modified",
+          "title": "Confirm update request"
+        },
+        "elementValueChanged": "",
+        "initial": {
+          "code": "context.panel.enableSubmit();",
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "-",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "center",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "none"
+        },
+        "reset": {
+          "backgroundColor": "purple",
+          "foregroundColor": "yellow",
+          "icon": "process",
+          "text": "Reset",
+          "variant": "hidden"
+        },
+        "resetAction": {
+          "code": "if (context.panel.response) {\n  context.grafana.notifySuccess(['Update', 'Values updated successfully.']);\n  context.grafana.refresh();\n} else {\n  context.grafana.notifyError(['Update', 'An error occurred updating values.']);\n}",
+          "confirm": false,
+          "getPayload": "return {}",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "backgroundColor": "red",
+          "foregroundColor": "white",
+          "icon": "bolt",
+          "text": "🔌 All Off",
+          "variant": "destructive"
+        },
+        "sync": false,
+        "update": {
+          "code": "fetch('http://turnip.lan:8091/api/plug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit: 0, action: 'groupoff' }) }); context.grafana.notifySuccess(['Done', 'All plugs off']);",
+          "confirm": false,
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "header": [],
+          "method": "-",
+          "payload": {},
+          "payloadMode": "all",
+          "url": "http://turnip.lan:8091/api/plug"
+        },
+        "updateEnabled": "manual"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Group Off",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 35,
+      "panels": [],
+      "title": "Scheduling",
+      "type": "row"
     },
     {
       "datasource": {
@@ -336,7 +736,7 @@
         "h": 4,
         "w": 3,
         "x": 0,
-        "y": 7
+        "y": 15
       },
       "id": 21,
       "options": {
@@ -381,7 +781,7 @@
         "h": 4,
         "w": 3,
         "x": 3,
-        "y": 7
+        "y": 15
       },
       "id": 22,
       "options": {
@@ -408,7 +808,7 @@
         },
         "elementValueChanged": "",
         "initial": {
-          "code": "",
+          "code": "context.panel.enableSubmit();",
           "contentType": "application/json",
           "getPayload": "return {}",
           "highlight": false,
@@ -460,7 +860,7 @@
           "payloadMode": "all",
           "url": "http://turnip.lan:8091/api/scheduling/enable"
         },
-        "updateEnabled": "auto"
+        "updateEnabled": "manual"
       },
       "pluginVersion": "6.3.1",
       "targets": [
@@ -490,7 +890,7 @@
         "h": 4,
         "w": 3,
         "x": 6,
-        "y": 7
+        "y": 15
       },
       "id": 23,
       "options": {
@@ -517,7 +917,7 @@
         },
         "elementValueChanged": "",
         "initial": {
-          "code": "",
+          "code": "context.panel.enableSubmit();",
           "contentType": "application/json",
           "getPayload": "return {}",
           "highlight": false,
@@ -569,7 +969,7 @@
           "payloadMode": "all",
           "url": "http://turnip.lan:8091/api/scheduling/disable"
         },
-        "updateEnabled": "auto"
+        "updateEnabled": "manual"
       },
       "pluginVersion": "6.3.1",
       "targets": [
@@ -593,7 +993,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 19
       },
       "id": 30,
       "panels": [],
@@ -654,7 +1054,7 @@
         "h": 9,
         "w": 16,
         "x": 0,
-        "y": 12
+        "y": 20
       },
       "id": 31,
       "options": {
@@ -761,7 +1161,7 @@
         "h": 14,
         "w": 8,
         "x": 0,
-        "y": 21
+        "y": 29
       },
       "id": 1,
       "options": {
@@ -860,7 +1260,7 @@
         "h": 14,
         "w": 8,
         "x": 8,
-        "y": 21
+        "y": 29
       },
       "id": 2,
       "options": {
@@ -987,7 +1387,7 @@
         "h": 14,
         "w": 8,
         "x": 0,
-        "y": 35
+        "y": 43
       },
       "id": 3,
       "options": {
@@ -1114,7 +1514,7 @@
         "h": 14,
         "w": 8,
         "x": 8,
-        "y": 35
+        "y": 43
       },
       "id": 4,
       "options": {
@@ -1160,7 +1560,6 @@
   "timezone": "browser",
   "title": "crispy_sleep",
   "uid": "crispy-sleep-001",
-  "version": 18,
+  "version": 2,
   "weekStart": ""
 }
-

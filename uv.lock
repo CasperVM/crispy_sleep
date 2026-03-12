@@ -351,7 +351,7 @@ requires-dist = [
     { name = "google-api-python-client", specifier = ">=2.0" },
     { name = "google-auth-httplib2", specifier = ">=0.2" },
     { name = "google-auth-oauthlib", specifier = ">=1.2" },
-    { name = "pysomneoctrl", specifier = ">=1.0.4" },
+    { name = "pysomneoctrl", git = "https://github.com/CasperVM/pysomneoctrl" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "requests", specifier = ">=2.32.5" },
@@ -978,12 +978,8 @@ wheels = [
 
 [[package]]
 name = "pysomneoctrl"
-version = "1.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b0/28/be5441dfe16bc70180e99c706082529b00fc31157977dad48894c2d05c26/pysomneoctrl-1.0.4.tar.gz", hash = "sha256:f021e12549c215bc046ea95c21aaafbdd028583a6de307ae88a564d7a6c33e35", size = 9535, upload-time = "2021-06-11T07:51:57.126Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/13/910bcb933953e8f56c9e444cd8e796e6c1a6a7932398653c6a997a1d34e9/pysomneoctrl-1.0.4-py3-none-any.whl", hash = "sha256:e87c428d693ee903551d84f1e2b561471abcf2c014a5bca4797e67fb6acec2fc", size = 11719, upload-time = "2021-06-11T07:51:56.112Z" },
-]
+version = "1.0.0"
+source = { git = "https://github.com/CasperVM/pysomneoctrl#4a45bac5ce6a1f83025bbf6bb5786c32c95b09d4" }
 
 [[package]]
 name = "python-dateutil"

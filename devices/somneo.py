@@ -13,9 +13,57 @@ SENSOR_INTERVAL = 10
 SENSOR_RETRY = 30
 
 
+class SomneoHolder:
+    def __init__(self, ip: str):
+        self.ip = ip
+        self._device = SomneoDevice(ip=ip)
+        self._errors = 0
+        self._max_errors = 3
+
+    def _reload(self):
+        logger.info("[SOMNEO] Reloading SomneoDevice...")
+        self._device = SomneoDevice(ip=self.ip)
+        self._errors = 0
+        logger.info("[SOMNEO] Reload complete")
+
+    def _record_error(self, e: Exception):
+        self._errors += 1
+        logger.warning(
+            f"[SOMNEO] Error #{self._errors}: {type(e).__name__}: {e}", exc_info=True
+        )
+        if self._errors >= self._max_errors:
+            self._reload()
+
+    def __getattr__(self, name: str):
+        attr = getattr(self._device, name)
+        if not callable(attr):
+            return attr
+
+        def wrapper(*args, **kwargs):
+            try:
+                result = attr(*args, **kwargs)
+                self._errors = 0  # reset on success
+                return result
+            except Exception as e:
+                self._record_error(e)
+                raise  # re-raise so callers still know it failed
+
+        return wrapper
+
+
 @run_in_executor
-def bedlight(somneo: SomneoDevice, *args, **kwargs):
-    somneo.bedlight(*args, **kwargs)
+def bedlight(somneo: SomneoHolder, *args, **kwargs):
+    for attempt in range(2):
+        try:
+            somneo.bedlight(*args, **kwargs)
+            return
+        except Exception as e:
+            logger.warning(
+                f"[BEDLIGHT] Attempt {attempt + 1} failed: {type(e).__name__}: {e}"
+            )
+            if attempt == 0:
+                somneo._reload()
+    logger.error("[BEDLIGHT] Failed after reload, giving up")
 
 
 def _store_sensors(data: dict):
@@ -42,12 +90,14 @@ def _store_sensors(data: dict):
         )
 
 
-async def track_sensors(somneo: SomneoDevice):
+async def track_sensors(somneo: SomneoHolder):
     """Poll Somneo sensors forever and persist to SQLite."""
 
     @run_in_executor
     def update_sensors():
         somneo.update_sensors()
+        if somneo.sensor_data is None:
+            raise RuntimeError("sensor_data is None")
 
     while True:
         try:
@@ -59,6 +109,10 @@ async def track_sensors(somneo: SomneoDevice):
 
         except Exception as e:
             logger.warning(
-                f"[SENSORS] Error reading sensors, retrying in {SENSOR_RETRY}s: {e}"
+                f"[SENSORS] Error reading sensors, retrying in {SENSOR_RETRY}s: {type(e).__name__}: {e}",
+                exc_info=True,
             )
+            somneo._record_error(
+                e
+            )  # explicitly drive the reload, it isnt always fired..
             await asyncio.sleep(SENSOR_RETRY)
