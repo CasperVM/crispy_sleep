@@ -6,9 +6,10 @@ from datetime import datetime, timedelta, timezone
 from db import init_db, get_conn, is_scheduling_enabled
 from devices.somneo import SomneoHolder, bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
+from devices.kaku import plug_on, plug_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, SIGNAL_BOT_ENABLED
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, SIGNAL_BOT_ENABLED
 from signal_bot import run_signal_bot
 from api import run_api
 
@@ -27,6 +28,8 @@ async def _check_abort(somneo):
         await bedlight(somneo, False)
         if USB_LIGHT:
             await usb_off()
+        for unit in KAKU_UNITS:
+            await plug_off(unit)
         return True
     return False
 
@@ -40,6 +43,8 @@ async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
 
     if USB_LIGHT:
         await blink_notify()
+    for unit in KAKU_UNITS:
+        await plug_on(unit)
 
     # Turn on first.. might be wrong color initially? (BUG)
     await bedlight(somneo, True, brightness=1, ctype=ctype)
@@ -61,6 +66,8 @@ async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
     await bedlight(somneo, False)
     if USB_LIGHT:
         await usb_off()
+    for unit in KAKU_UNITS:
+        await plug_off(unit)
     logger.info("Wind-down complete.")
 
 
@@ -83,6 +90,8 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
 
     if USB_LIGHT:
         await usb_on()
+    for unit in KAKU_UNITS:
+        await plug_on(unit)
     logger.info("Sunrise complete.")
 
 
@@ -154,7 +163,7 @@ async def main():
     init_db()
     somneo = SomneoHolder(ip=SOMNEO_IP)
     logger.info("crispy_sleep 🌙 starting up")
-    await turn_off_somneo(somneo)
+    # await turn_off_somneo(somneo)
 
     tasks = [
         track_sensors(somneo),

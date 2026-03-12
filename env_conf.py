@@ -7,6 +7,9 @@ load_dotenv()
 # Somneo
 SOMNEO_IP = os.environ["SOMNEO_IP"]
 USB_LIGHT = os.getenv("USB_LIGHT", "false").lower() == "true"
+KAKU_UNITS = [
+    int(u.strip()) for u in os.getenv("KAKU_UNITS", "").split(",") if u.strip()
+]
 
 # Google Calendar
 GCAL_CALENDAR_ID = os.getenv("GCAL_CALENDAR_ID", "primary")
