@@ -15,6 +15,7 @@ LOCAL_TZ = ZoneInfo("Europe/Helsinki")
 DEFAULTS = {
     "winddown": {"duration_minutes": 30, "ctype": 1},
     "sunrise": {"duration_minutes": 30, "ctype": 2},
+    "coffee": {"duration_minutes": 1, "ctype": None},
 }
 
 

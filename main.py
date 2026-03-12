@@ -9,7 +9,7 @@ from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT
 from api import run_api
 
 logger = logging.getLogger(__name__)
@@ -106,9 +106,15 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
     logger.info("Sunrise complete.")
 
 
+async def coffee(somneo=None, **_):
+    """Turns on the coffee machine plug at the scheduled start time."""
+    await plug_on(KAKU_COFFEE_UNIT)
+    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on.")
+
+
 # Dispatcher
 
-ROUTINES = {"winddown": winddown, "sunrise": sunrise}
+ROUTINES = {"winddown": winddown, "sunrise": sunrise, "coffee": coffee}
 
 
 async def event_dispatcher(somneo):

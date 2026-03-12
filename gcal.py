@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 _WINDDOWN_KW = {"winddown", "wind down", "wind-down", "bedtime", "sleep"}
 _SUNRISE_KW = {"sunrise", "wake", "wakeup", "wake up", "wake-up"}
+_COFFEE_KW = {"coffee"}
 
 
 def _classify(title: str) -> Optional[str]:
@@ -28,6 +29,8 @@ def _classify(title: str) -> Optional[str]:
         return "winddown"
     if any(k in t for k in _SUNRISE_KW):
         return "sunrise"
+    if any(k in t for k in _COFFEE_KW):
+        return "coffee"
     return None
 
 

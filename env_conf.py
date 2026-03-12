@@ -10,8 +10,11 @@ USB_LIGHT = os.getenv("USB_LIGHT", "false").lower() == "true"
 
 # KAKU RF plugs
 KAKU_ADDRESS = int(os.getenv("KAKU_ADDRESS", "12345678"))
-KAKU_UNITS = [int(u.strip()) for u in os.getenv("KAKU_UNITS", "").split(",") if u.strip()]
+KAKU_UNITS = [
+    int(u.strip()) for u in os.getenv("KAKU_UNITS", "").split(",") if u.strip()
+]
 KAKU_USE_GROUP = os.getenv("KAKU_USE_GROUP", "false").lower() == "true"
+KAKU_COFFEE_UNIT = int(os.getenv("KAKU_COFFEE_UNIT", "2"))
 KAKU_SENDOOK_PATH = os.getenv("KAKU_SENDOOK_PATH", "/home/casper/rpitx/sendook")
 KAKU_PULSE_US = int(os.getenv("KAKU_PULSE_US", "275"))
 KAKU_REPEATS = int(os.getenv("KAKU_REPEATS", "4"))
