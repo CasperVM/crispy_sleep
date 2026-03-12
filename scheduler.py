@@ -31,25 +31,6 @@ def _is_cancelled(event_type: str, dt: datetime) -> bool:
     return row is not None
 
 
-def _next_signal_override(event_type: str) -> Optional[dict]:
-    now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat().replace("T", " ")
-    with get_conn() as conn:
-        row = conn.execute(
-            """
-            SELECT * FROM overrides
-            WHERE event_type = ? AND status = 'pending' AND trigger_at > ?
-            ORDER BY trigger_at ASC LIMIT 1
-        """,
-            (event_type, now),
-        ).fetchone()
-    if not row:
-        return None
-    ev = dict(row)
-    ev.setdefault("duration_minutes", DEFAULTS[event_type]["duration_minutes"])
-    ev.setdefault("ctype", DEFAULTS[event_type]["ctype"])
-    return {**ev, "source": "signal"}
-
-
 def _next_gcal_event(event_type: str) -> Optional[dict]:
     now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat().replace("T", " ")
     # logger.info(f"getting gcal ev: type={event_type} now={now}")
@@ -110,14 +91,7 @@ def _next_cron_event(event_type: str) -> Optional[dict]:
 
 
 def get_next_event(event_type: str) -> Optional[dict]:
-    """Returns the next event for event_type, honouring priority: signal > gcal > config."""
+    """Returns the next event for event_type, honouring priority: gcal > config."""
     if not is_scheduling_enabled():
-        # logger.warning("SCHEDULING DISABLED")
         return None
-    # TODO: only keep gcal?... need to remove all this other stuff I ended up not needing
-    #  Sig bot could still be used though?.. unsure
-    return (
-        _next_signal_override(event_type)
-        or _next_gcal_event(event_type)
-        or _next_cron_event(event_type)
-    )
+    return _next_gcal_event(event_type) or _next_cron_event(event_type)

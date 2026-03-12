@@ -3,14 +3,13 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from db import init_db, get_conn, is_scheduling_enabled
+from db import init_db, is_scheduling_enabled
 from devices.somneo import SomneoHolder, bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from devices.kaku import plug_on, plug_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, SIGNAL_BOT_ENABLED
-from signal_bot import run_signal_bot
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS
 from api import run_api
 
 logger = logging.getLogger(__name__)
@@ -138,13 +137,6 @@ async def event_dispatcher(somneo):
                 f"[{ev['source'].upper()}] Firing {etype} @ {trigger_at.astimezone().strftime('%H:%M')}"
             )
 
-            # Mark signal override as done
-            if ev.get("id") and ev.get("source") == "signal":
-                with get_conn() as conn:
-                    conn.execute(
-                        "UPDATE overrides SET status='done' WHERE id=?", (ev["id"],)
-                    )
-
             asyncio.create_task(
                 fn(
                     somneo,
@@ -171,13 +163,6 @@ async def main():
         event_dispatcher(somneo),
         run_api(somneo),
     ]
-
-    if SIGNAL_BOT_ENABLED:
-        tasks.append(run_signal_bot(somneo))
-    else:
-        logger.info(
-            "Signal bot disabled: set signal_bot_enabled: true in config.json to enable"
-        )
 
     await asyncio.gather(*tasks)
 
