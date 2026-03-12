@@ -34,16 +34,18 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.asyncutil import run_in_executor
+from env_conf import (
+    KAKU_ADDRESS as ADDRESS,
+    KAKU_SENDOOK_PATH as SENDOOK_PATH,
+    KAKU_PULSE_US as T,
+    KAKU_REPEATS as REPEATS,
+    KAKU_PAIR_DURATION as PAIR_DURATION,
+)
 
 logger = logging.getLogger(__name__)
 
 _lock = asyncio.Lock()  # serialises all RF transmissions; rpitx needs ≥1s between sends
 
-ADDRESS = int(os.getenv("KAKU_ADDRESS", "12345678"))
-T = int(os.getenv("KAKU_PULSE_US", "275"))
-REPEATS = int(os.getenv("KAKU_REPEATS", "4"))
-SENDOOK_PATH = os.getenv("KAKU_SENDOOK_PATH", "rpitx/sendook")
-PAIR_DURATION = int(os.getenv("KAKU_PAIR_DURATION", "15"))
 _FREQ = "433920000"
 
 
