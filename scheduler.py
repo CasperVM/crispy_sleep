@@ -19,19 +19,6 @@ DEFAULTS = {
 }
 
 
-def _is_cancelled(event_type: str, dt: datetime) -> bool:
-    d = dt.date().isoformat()
-    with get_conn() as conn:
-        row = conn.execute(
-            """
-            SELECT 1 FROM cancellations
-            WHERE (event_type = ? OR event_type IS NULL) AND cancel_date = ?
-        """,
-            (event_type, d),
-        ).fetchone()
-    return row is not None
-
-
 def _next_gcal_event(event_type: str) -> Optional[dict]:
     now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat().replace("T", " ")
     # logger.info(f"getting gcal ev: type={event_type} now={now}")
@@ -49,9 +36,6 @@ def _next_gcal_event(event_type: str) -> Optional[dict]:
         return None
     ev = dict(row)
     # logger.info(f"Found gcal ev: {ev}")
-    if _is_cancelled(event_type, datetime.fromisoformat(ev["trigger_at"])):
-        # logger.info("is cancelled!")
-        return None
     ev.setdefault("duration_minutes", DEFAULTS[event_type]["duration_minutes"])
     ev.setdefault("ctype", DEFAULTS[event_type]["ctype"])
     return {**ev, "source": "gcal"}
@@ -78,9 +62,6 @@ def _next_cron_event(event_type: str) -> Optional[dict]:
     # Convert the naive local cron result → UTC
     best_dt_local = best_dt.replace(tzinfo=LOCAL_TZ)
     best_dt_utc = best_dt_local.astimezone(timezone.utc).replace(tzinfo=None)
-
-    if _is_cancelled(event_type, best_dt_utc):
-        return None
 
     return {
         "event_type": event_type,

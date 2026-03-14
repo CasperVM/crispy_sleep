@@ -9,7 +9,18 @@ from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT, KAKU_COFFEE_ADDRESS, KAKU_COFFEE_SENDS, KAKU_COFFEE_SEND_GAP, DISCORD_BOT_ENABLED, DISCORD_NUDGE_ADVANCE_MIN
+from env_conf import (
+    SOMNEO_IP,
+    USB_LIGHT,
+    KAKU_UNITS,
+    KAKU_USE_GROUP,
+    KAKU_COFFEE_UNIT,
+    KAKU_COFFEE_ADDRESS,
+    KAKU_COFFEE_SENDS,
+    KAKU_COFFEE_SEND_GAP,
+    DISCORD_BOT_ENABLED,
+    DISCORD_NUDGE_ADVANCE_MIN,
+)
 from state import DispatcherState
 from api import run_api
 
@@ -53,7 +64,9 @@ async def _check_abort(somneo, event_type: str = "") -> bool:
                 (f"cancel_{event_type}",),
             ).fetchone()
             if row and row["value"] == "1":
-                conn.execute("DELETE FROM settings WHERE key = ?", (f"cancel_{event_type}",))
+                conn.execute(
+                    "DELETE FROM settings WHERE key = ?", (f"cancel_{event_type}",)
+                )
                 await bedlight(somneo, False)
                 if USB_LIGHT:
                     await usb_off()
@@ -127,7 +140,9 @@ async def coffee(somneo=None, **_):
         await plug_on(KAKU_COFFEE_UNIT, address=KAKU_COFFEE_ADDRESS)
         if i < KAKU_COFFEE_SENDS - 1:
             await asyncio.sleep(KAKU_COFFEE_SEND_GAP)
-    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on (address {KAKU_COFFEE_ADDRESS}, {KAKU_COFFEE_SENDS}x).")
+    logger.info(
+        f"Coffee: unit {KAKU_COFFEE_UNIT} on (address {KAKU_COFFEE_ADDRESS}, {KAKU_COFFEE_SENDS}x)."
+    )
 
 
 # Dispatcher
@@ -167,7 +182,9 @@ async def event_dispatcher(somneo, notify_queue=None, state=None):
                 nudge_key = (etype, trigger_at.strftime("%Y-%m-%d %H:%M"))
                 if nudge_key not in nudged:
                     nudged.add(nudge_key)
-                    await notify_queue.put({"event_type": etype, "trigger_at": trigger_at})
+                    await notify_queue.put(
+                        {"event_type": etype, "trigger_at": trigger_at}
+                    )
 
             if trigger_at > window_end:
                 # logger.info("Skipping2")
@@ -184,8 +201,10 @@ async def event_dispatcher(somneo, notify_queue=None, state=None):
 
             # Cancel check
             if state is not None and key in state.cancelled:
-                state.cancelled.discard(key)
-                logger.info(f"[DISPATCHER] {etype} @ {trigger_at.strftime('%H:%M')} cancelled via Discord")
+                state.clear_cancel(etype, key[1])
+                logger.info(
+                    f"[DISPATCHER] {etype} @ {trigger_at.strftime('%H:%M')} cancelled via Discord"
+                )
                 continue
 
             fired.add(key)
@@ -230,6 +249,7 @@ async def main():
 
     if DISCORD_BOT_ENABLED:
         from discord_bot import run_discord_bot
+
         tasks.append(run_discord_bot(notify_queue, state, somneo, ROUTINES))
 
     await asyncio.gather(*tasks)

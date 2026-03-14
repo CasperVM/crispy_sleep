@@ -1,8 +1,10 @@
+import logging
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
 DB_PATH = Path("crispy_sleep.db")
+logger = logging.getLogger(__name__)
 
 
 def _maybe_migrate_sleep_log(conn):
@@ -11,6 +13,7 @@ def _maybe_migrate_sleep_log(conn):
         "SELECT name FROM pragma_table_info('sleep_log') WHERE name = 'phone'"
     ).fetchone()
     if row:
+        logger.info("[db] migrating sleep_log: dropping old schema")
         conn.execute("DROP TABLE sleep_log")
         conn.execute("""
             CREATE TABLE sleep_log (
@@ -65,6 +68,7 @@ def init_db():
             INSERT OR IGNORE INTO settings (key, value) VALUES ('scheduling_enabled', '1');
         """)
         _maybe_migrate_sleep_log(conn)
+    logger.info(f"[db] initialized at {DB_PATH}")
 
 
 def is_scheduling_enabled() -> bool:
@@ -75,13 +79,13 @@ def is_scheduling_enabled() -> bool:
     return (row["value"] == "1") if row else True
 
 
-
 def log_sleep_event(user_id: str, event: str, delay_reason: str | None = None):
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO sleep_log (user_id, event, delay_reason) VALUES (?, ?, ?)",
             (user_id, event, delay_reason),
         )
+    logger.info(f"[db] sleep_log: user={user_id} event={event} reason={delay_reason}")
 
 
 @contextmanager

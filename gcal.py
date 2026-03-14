@@ -13,7 +13,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from db import get_conn
-from env_conf import GCAL_CALENDAR_ID, GCAL_CREDENTIALS_FILE, GCAL_TOKEN_FILE, GCAL_SERVICE_ACCOUNT_FILE
+from env_conf import (
+    GCAL_CALENDAR_ID,
+    GCAL_CREDENTIALS_FILE,
+    GCAL_TOKEN_FILE,
+    GCAL_SERVICE_ACCOUNT_FILE,
+)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 POLL_INTERVAL = 300  # seconds
