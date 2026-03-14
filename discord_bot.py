@@ -39,6 +39,12 @@ from state import DispatcherState
 logger = logging.getLogger(__name__)
 
 
+def _ts(dt: datetime, fmt: str = "t") -> str:
+    """Discord timestamp tag from a naive UTC datetime. Renders in each user's local TZ."""
+    unix = int(dt.replace(tzinfo=timezone.utc).timestamp())
+    return f"<t:{unix}:{fmt}>"
+
+
 class DelayReason(str, enum.Enum):
     SCREEN_TIME = "screen_time"  # phone / doomscrolling
     GAMING_SOCIAL = "gaming_social"  # gaming or social online
@@ -147,7 +153,12 @@ class DelayReasonView(discord.ui.View):
 
 class NudgeView(discord.ui.View):
     def __init__(self, event_type: str, trigger_at: datetime, state: DispatcherState):
-        super().__init__(timeout=DISCORD_NUDGE_ADVANCE_MIN * 60 + 300)
+        seconds_until = (
+            trigger_at - datetime.now(timezone.utc).replace(tzinfo=None)
+        ).total_seconds()
+        super().__init__(
+            timeout=max(60, seconds_until) + 300
+        )  # expires 5 min after event fires
         self.event_type = event_type
         self.trigger_at = trigger_at
         self.state = state
@@ -174,8 +185,11 @@ class NudgeView(discord.ui.View):
     async def delay_15(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        self.state.snooze(self.event_type, self.trigger_at + timedelta(minutes=15))
-        await interaction.response.send_message("Delayed 15 min.", ephemeral=True)
+        new_time = self.trigger_at + timedelta(minutes=15)
+        self.state.snooze(self.event_type, new_time)
+        await interaction.response.send_message(
+            f"Delayed to {_ts(new_time, 't')} ({_ts(new_time, 'R')}).", ephemeral=True
+        )
         await self._ask_reason(interaction)
         self.stop()
 
@@ -183,8 +197,11 @@ class NudgeView(discord.ui.View):
     async def delay_30(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        self.state.snooze(self.event_type, self.trigger_at + timedelta(minutes=30))
-        await interaction.response.send_message("Delayed 30 min.", ephemeral=True)
+        new_time = self.trigger_at + timedelta(minutes=30)
+        self.state.snooze(self.event_type, new_time)
+        await interaction.response.send_message(
+            f"Delayed to {_ts(new_time, 't')} ({_ts(new_time, 'R')}).", ephemeral=True
+        )
         await self._ask_reason(interaction)
         self.stop()
 
@@ -206,18 +223,8 @@ async def _consume_queue(
         event_type: str = item["event_type"]
         trigger_at: datetime = item["trigger_at"]
 
-        minutes_until = max(
-            0,
-            int(
-                (
-                    trigger_at - datetime.now(timezone.utc).replace(tzinfo=None)
-                ).total_seconds()
-                / 60
-            ),
-        )
         msg = (
-            f"🌙 **{event_type.capitalize()}** in {minutes_until} min "
-            f"({trigger_at.strftime('%H:%M')})\n"
+            f"🌙 **{event_type.capitalize()}** {_ts(trigger_at, 'R')} ({_ts(trigger_at, 't')})\n"
             f"Target sleep: {SLEEP_TARGET_HOUR:02d}:00 → wake {_WAKE_HOUR:02d}:00 ({SLEEP_DURATION_H}h)"
         )
 
