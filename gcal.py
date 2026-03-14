@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Optional
 
 from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from db import get_conn
-from env_conf import GCAL_CALENDAR_ID, GCAL_CREDENTIALS_FILE, GCAL_TOKEN_FILE
+from env_conf import GCAL_CALENDAR_ID, GCAL_CREDENTIALS_FILE, GCAL_TOKEN_FILE, GCAL_SERVICE_ACCOUNT_FILE
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 POLL_INTERVAL = 300  # seconds
@@ -57,7 +58,12 @@ def _duration_minutes(start_raw: str, end_raw: str) -> Optional[int]:
         return None
 
 
-def _get_creds() -> Credentials:
+def _get_creds():
+    if GCAL_SERVICE_ACCOUNT_FILE:
+        return service_account.Credentials.from_service_account_file(
+            GCAL_SERVICE_ACCOUNT_FILE, scopes=SCOPES
+        )
+    # OAuth2 flow
     creds = None
     token = Path(GCAL_TOKEN_FILE)
     if token.exists():

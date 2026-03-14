@@ -20,11 +20,14 @@ KAKU_SENDOOK_PATH = os.getenv("KAKU_SENDOOK_PATH", "/home/casper/rpitx/sendook")
 KAKU_PULSE_US = int(os.getenv("KAKU_PULSE_US", "275"))
 KAKU_REPEATS = int(os.getenv("KAKU_REPEATS", "4"))
 KAKU_PAIR_DURATION = int(os.getenv("KAKU_PAIR_DURATION", "15"))
+KAKU_COFFEE_SENDS = int(os.getenv("KAKU_COFFEE_SENDS", "3"))
+KAKU_COFFEE_SEND_GAP = float(os.getenv("KAKU_COFFEE_SEND_GAP", "3.0"))
 
 # Google Calendar
 GCAL_CALENDAR_ID = os.getenv("GCAL_CALENDAR_ID", "primary")
 GCAL_CREDENTIALS_FILE = os.getenv("GCAL_CREDENTIALS_FILE", "credentials.json")
 GCAL_TOKEN_FILE = os.getenv("GCAL_TOKEN_FILE", "token.json")
+GCAL_SERVICE_ACCOUNT_FILE = os.getenv("GCAL_SERVICE_ACCOUNT_FILE", "")
 
 # Discord bot
 DISCORD_BOT_ENABLED = os.getenv("DISCORD_BOT_ENABLED", "false").lower() == "true"

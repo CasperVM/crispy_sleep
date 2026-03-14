@@ -9,7 +9,7 @@ from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT, KAKU_COFFEE_ADDRESS, DISCORD_BOT_ENABLED, DISCORD_NUDGE_ADVANCE_MIN
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT, KAKU_COFFEE_ADDRESS, KAKU_COFFEE_SENDS, KAKU_COFFEE_SEND_GAP, DISCORD_BOT_ENABLED, DISCORD_NUDGE_ADVANCE_MIN
 from state import DispatcherState
 from api import run_api
 
@@ -123,8 +123,11 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
 
 async def coffee(somneo=None, **_):
     """Turns on the coffee machine plug at the scheduled start time."""
-    await plug_on(KAKU_COFFEE_UNIT, address=KAKU_COFFEE_ADDRESS)
-    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on (address {KAKU_COFFEE_ADDRESS}).")
+    for i in range(KAKU_COFFEE_SENDS):
+        await plug_on(KAKU_COFFEE_UNIT, address=KAKU_COFFEE_ADDRESS)
+        if i < KAKU_COFFEE_SENDS - 1:
+            await asyncio.sleep(KAKU_COFFEE_SEND_GAP)
+    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on (address {KAKU_COFFEE_ADDRESS}, {KAKU_COFFEE_SENDS}x).")
 
 
 # Dispatcher
