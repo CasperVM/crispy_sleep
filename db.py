@@ -5,25 +5,31 @@ from pathlib import Path
 DB_PATH = Path("crispy_sleep.db")
 
 
+def _maybe_migrate_sleep_log(conn):
+    """Recreate sleep_log if it has the old 'phone' column schema."""
+    row = conn.execute(
+        "SELECT name FROM pragma_table_info('sleep_log') WHERE name = 'phone'"
+    ).fetchone()
+    if row:
+        conn.execute("DROP TABLE sleep_log")
+        conn.execute("""
+            CREATE TABLE sleep_log (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id      TEXT NOT NULL,
+                event        TEXT NOT NULL CHECK(event IN ('sleep', 'wake', 'delay')),
+                delay_reason TEXT,
+                recorded_at  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+
 def init_db():
     # DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_conn() as conn:
         conn.executescript("""
-            CREATE TABLE IF NOT EXISTS overrides (
-                id               INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type       TEXT NOT NULL,
-                trigger_at       TEXT NOT NULL,
-                duration_minutes INTEGER,
-                ctype            INTEGER,
-                status           TEXT DEFAULT 'pending',
-                created_at       TEXT DEFAULT (datetime('now'))
-            );
-            CREATE TABLE IF NOT EXISTS cancellations (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type   TEXT,
-                cancel_date  TEXT NOT NULL,
-                created_at   TEXT DEFAULT (datetime('now'))
-            );
+            DROP TABLE IF EXISTS overrides;
+            DROP TABLE IF EXISTS cancellations;
+            DROP TABLE IF EXISTS next_events;
             CREATE TABLE IF NOT EXISTS gcal_cache (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
                 gcal_id          TEXT UNIQUE NOT NULL,
@@ -34,16 +40,11 @@ def init_db():
                 updated_at       TEXT DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS sleep_log (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                phone       TEXT NOT NULL,
-                event       TEXT NOT NULL CHECK(event IN ('sleep', 'wake')),
-                recorded_at TEXT DEFAULT (datetime('now'))
-            );
-            CREATE TABLE IF NOT EXISTS next_events (
-                event_type TEXT PRIMARY KEY,
-                trigger_at TEXT,
-                source     TEXT,
-                updated_at TEXT DEFAULT (datetime('now'))
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id      TEXT NOT NULL,
+                event        TEXT NOT NULL CHECK(event IN ('sleep', 'wake', 'delay')),
+                delay_reason TEXT,
+                recorded_at  TEXT DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS sensor_log (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,6 +64,7 @@ def init_db():
             );
             INSERT OR IGNORE INTO settings (key, value) VALUES ('scheduling_enabled', '1');
         """)
+        _maybe_migrate_sleep_log(conn)
 
 
 def is_scheduling_enabled() -> bool:
@@ -73,20 +75,13 @@ def is_scheduling_enabled() -> bool:
     return (row["value"] == "1") if row else True
 
 
-def cancel_todays_events():
-    """Cancel all scheduled events for today - called on any manual light intervention.
 
-    NOTE: note actually in use, this is a bit extreme...
-    """
-    from datetime import datetime
-
-    today = datetime.now().date().isoformat()
+def log_sleep_event(user_id: str, event: str, delay_reason: str | None = None):
     with get_conn() as conn:
-        for etype in ("winddown", "sunrise"):
-            conn.execute(
-                "INSERT OR IGNORE INTO cancellations (event_type, cancel_date) VALUES (?, ?)",
-                (etype, today),
-            )
+        conn.execute(
+            "INSERT INTO sleep_log (user_id, event, delay_reason) VALUES (?, ?, ?)",
+            (user_id, event, delay_reason),
+        )
 
 
 @contextmanager

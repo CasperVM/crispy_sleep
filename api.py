@@ -10,11 +10,13 @@ import logging
 
 from aiohttp import web
 
-from db import get_conn, cancel_todays_events
+from db import get_conn
 from devices.somneo import bedlight
 from devices.usb_light_pi3 import usb_on, usb_off
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
-from env_conf import USB_LIGHT
+from env_conf import USB_LIGHT, KAKU_ADDRESS, KAKU_COFFEE_ADDRESS
+
+_PLUG_ADDRESSES = [KAKU_ADDRESS, KAKU_COFFEE_ADDRESS]
 
 logger = logging.getLogger(__name__)
 API_PORT = 8091
@@ -36,7 +38,6 @@ async def handle_light_set(request: web.Request) -> web.Response:
     ctype = int(data.get("ctype", 3))
 
     brightness = max(0, min(25, brightness))
-    # cancel_todays_events()
 
     if brightness == 0:
         await bedlight(_somneo, False)
@@ -52,7 +53,6 @@ async def handle_light_set(request: web.Request) -> web.Response:
 
 
 async def handle_light_off(request: web.Request) -> web.Response:
-    # cancel_todays_events()
     await bedlight(_somneo, False)
     if USB_LIGHT:
         await usb_off()
@@ -67,21 +67,23 @@ async def handle_plug(request: web.Request) -> web.Response:
     data = await request.json()
     unit = int(data.get("unit", 0))
     action = data.get("action", "on")
+    addr_index = int(data.get("addr_index", 0))
+    address = _PLUG_ADDRESSES[min(addr_index, len(_PLUG_ADDRESSES) - 1)]
 
     if action == "on":
-        await plug_on(unit)
+        await plug_on(unit, address=address)
     elif action == "off":
-        await plug_off(unit)
+        await plug_off(unit, address=address)
     elif action == "groupon":
-        await plug_group_on()
+        await plug_group_on(address=KAKU_ADDRESS)  # lamps only
     elif action == "groupoff":
-        await plug_group_off()
+        await plug_group_off(address=KAKU_ADDRESS)  # lamps only
     else:
         return _cors(
             web.json_response({"ok": False, "error": "unknown action"}, status=400)
         )
 
-    logger.info(f"[API] Plug action={action} unit={unit}")
+    logger.info(f"[API] Plug action={action} unit={unit} addr_index={addr_index}")
     return _cors(web.json_response({"ok": True}))
 
 

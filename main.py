@@ -3,13 +3,14 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from db import init_db, is_scheduling_enabled
+from db import init_db, is_scheduling_enabled, get_conn
 from devices.somneo import SomneoHolder, bedlight, track_sensors
 from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
-from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT
+from env_conf import SOMNEO_IP, USB_LIGHT, KAKU_UNITS, KAKU_USE_GROUP, KAKU_COFFEE_UNIT, KAKU_COFFEE_ADDRESS, DISCORD_BOT_ENABLED, DISCORD_NUDGE_ADVANCE_MIN
+from state import DispatcherState
 from api import run_api
 
 logger = logging.getLogger(__name__)
@@ -37,14 +38,28 @@ async def turn_off_somneo(somneo):
     await bedlight(somneo, False)
 
 
-async def _check_abort(somneo):
-    """If scheduling was disabled mid-routine, kill everything and return True."""
+async def _check_abort(somneo, event_type: str = "") -> bool:
+    """If scheduling was disabled or routine was cancelled mid-run, clean up and return True."""
     if not is_scheduling_enabled():
         await bedlight(somneo, False)
         if USB_LIGHT:
             await usb_off()
         await _kaku_off()
         return True
+    if event_type:
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT value FROM settings WHERE key = ?",
+                (f"cancel_{event_type}",),
+            ).fetchone()
+            if row and row["value"] == "1":
+                conn.execute("DELETE FROM settings WHERE key = ?", (f"cancel_{event_type}",))
+                await bedlight(somneo, False)
+                if USB_LIGHT:
+                    await usb_off()
+                await _kaku_off()
+                logger.info(f"[ABORT] {event_type} cancelled mid-run")
+                return True
     return False
 
 
@@ -73,7 +88,7 @@ async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
         if current < 10 and USB_LIGHT:
             await usb_off()
 
-        if await _check_abort(somneo):
+        if await _check_abort(somneo, "winddown"):
             return
 
     await bedlight(somneo, False)
@@ -97,7 +112,7 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
         await bedlight(somneo, True, brightness=current, ctype=ctype)
         await asyncio.sleep(step_time)
 
-        if await _check_abort(somneo):
+        if await _check_abort(somneo, "sunrise"):
             return
 
     if USB_LIGHT:
@@ -108,8 +123,8 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
 
 async def coffee(somneo=None, **_):
     """Turns on the coffee machine plug at the scheduled start time."""
-    await plug_on(KAKU_COFFEE_UNIT)
-    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on.")
+    await plug_on(KAKU_COFFEE_UNIT, address=KAKU_COFFEE_ADDRESS)
+    logger.info(f"Coffee: unit {KAKU_COFFEE_UNIT} on (address {KAKU_COFFEE_ADDRESS}).")
 
 
 # Dispatcher
@@ -117,17 +132,19 @@ async def coffee(somneo=None, **_):
 ROUTINES = {"winddown": winddown, "sunrise": sunrise, "coffee": coffee}
 
 
-async def event_dispatcher(somneo):
+async def event_dispatcher(somneo, notify_queue=None, state=None):
     """
     Every 30s, checks both event types for due events and fires them.
     Deduplicates by (event_type, trigger minute) so nothing fires twice.
     """
     fired: set[tuple[str, str]] = set()
+    nudged: set[tuple[str, str]] = set()
 
     while True:
         # logger.info("Checking events")
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         window_end = now + timedelta(seconds=30)
+        nudge_window = timedelta(minutes=DISCORD_NUDGE_ADVANCE_MIN)
 
         for etype, fn in ROUTINES.items():
             ev = get_next_event(etype)
@@ -137,6 +154,18 @@ async def event_dispatcher(somneo):
             # print(ev)
 
             trigger_at = datetime.fromisoformat(ev["trigger_at"])
+
+            # Nudge ahead of time
+            if (
+                notify_queue is not None
+                and etype in ("winddown", "sunrise")
+                and now < trigger_at <= now + nudge_window
+            ):
+                nudge_key = (etype, trigger_at.strftime("%Y-%m-%d %H:%M"))
+                if nudge_key not in nudged:
+                    nudged.add(nudge_key)
+                    await notify_queue.put({"event_type": etype, "trigger_at": trigger_at})
+
             if trigger_at > window_end:
                 # logger.info("Skipping2")
                 continue
@@ -146,10 +175,21 @@ async def event_dispatcher(somneo):
                 # logger.info("Skipping3")
                 continue
 
+            # Snooze check
+            if state is not None and now < state.snoozed_until.get(etype, datetime.min):
+                continue
+
+            # Cancel check
+            if state is not None and key in state.cancelled:
+                state.cancelled.discard(key)
+                logger.info(f"[DISPATCHER] {etype} @ {trigger_at.strftime('%H:%M')} cancelled via Discord")
+                continue
+
             fired.add(key)
             # Prune keys older than 2 h
             cutoff = (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M")
             fired = {k for k in fired if k[1] >= cutoff}
+            nudged = {k for k in nudged if k[1] >= cutoff}
 
             logger.info(
                 f"[{ev['source'].upper()}] Firing {etype} @ {trigger_at.astimezone().strftime('%H:%M')}"
@@ -175,12 +215,19 @@ async def main():
     logger.info("crispy_sleep 🌙 starting up")
     # await turn_off_somneo(somneo)
 
+    state = DispatcherState()
+    notify_queue: asyncio.Queue = asyncio.Queue()
+
     tasks = [
         track_sensors(somneo),
         poll_gcal(),
-        event_dispatcher(somneo),
+        event_dispatcher(somneo, notify_queue, state),
         run_api(somneo),
     ]
+
+    if DISCORD_BOT_ENABLED:
+        from discord_bot import run_discord_bot
+        tasks.append(run_discord_bot(notify_queue, state, somneo, ROUTINES))
 
     await asyncio.gather(*tasks)
 

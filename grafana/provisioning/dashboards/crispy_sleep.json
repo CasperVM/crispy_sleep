@@ -347,15 +347,21 @@
             "options": [
               {
                 "id": "1",
-                "label": "Left bedroom",
+                "label": "Left 💡",
                 "type": "string",
                 "value": "1"
               },
               {
                 "id": "0",
-                "label": "Right bedroom",
+                "label": "Right 💡",
                 "type": "string",
                 "value": "0"
+              },
+              {
+                "id": "coffee",
+                "label": "☕",
+                "type": "string",
+                "value": "coffee"
               }
             ],
             "title": "Unit",
@@ -429,7 +435,7 @@
         },
         "sync": false,
         "update": {
-          "code": "const unit = parseInt(context.panel.elements.find(e => e.id === 'unit')?.value || '0');\nconst action = context.panel.elements.find(e => e.id === 'action')?.value || 'on';\nfetch('http://turnip.lan:8091/api/plug', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ unit, action })\n});\ncontext.grafana.notifySuccess(['Done', 'Plug ' + action + ' (unit ' + unit + ')']);",
+          "code": "const unitVal = context.panel.elements.find(e => e.id === 'unit')?.value || '0';\nconst action = context.panel.elements.find(e => e.id === 'action')?.value || 'on';\nconst isCoffee = unitVal === 'coffee';\nconst addr_index = isCoffee ? 1 : 0;\nconst unit = isCoffee ? 0 : parseInt(unitVal);\nfetch('http://turnip.lan:8091/api/plug', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ unit, action, addr_index })\n});\ncontext.grafana.notifySuccess(['Done', 'Plug ' + action + ' (' + (isCoffee ? '☕' : 'unit ' + unit) + ')']);",
           "confirm": false,
           "contentType": "application/json",
           "getPayload": "return {}",
@@ -444,7 +450,7 @@
       "pluginVersion": "6.3.1",
       "targets": [
         {
-          "queryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= 1773318490638 / 1000 and time < 1773340090638 / 1000",
+          "queryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= 1773354539236 / 1000 and time < 1773355439236 / 1000",
           "queryType": "table",
           "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
           "refId": "A",
@@ -1560,6 +1566,6 @@
   "timezone": "browser",
   "title": "crispy_sleep",
   "uid": "crispy-sleep-001",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }
