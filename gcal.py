@@ -156,8 +156,9 @@ def _sync_fetch():
             )
             # logger.info(f"GCal: removed {len(stale_ids)} deleted/cancelled event(s) from cache")
 
-        # 3. Clean up anything in the past regardless
-        conn.execute("DELETE FROM gcal_cache WHERE trigger_at < ?", (now_str,))
+        # 3. Clean up past events, but keep a 2h grace window for active snoozes
+        cutoff = (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute("DELETE FROM gcal_cache WHERE trigger_at < ?", (cutoff,))
 
     logger.info(f"GCal: synced {len(relevant)} relevant event(s)")
 

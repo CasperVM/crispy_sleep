@@ -2,6 +2,8 @@ import logging
 import asyncio
 from datetime import datetime, timezone
 
+from requests.exceptions import Timeout, ConnectionError as RequestsConnectionError
+from urllib3.exceptions import ReadTimeoutError
 from pysomneoctrl import SomneoDevice
 
 from db import get_conn
@@ -26,10 +28,15 @@ class SomneoHolder:
         self._errors = 0
         logger.info("[SOMNEO] Reload complete")
 
+    @staticmethod
+    def _is_timeout(e: Exception) -> bool:
+        return isinstance(e, (Timeout, ReadTimeoutError, TimeoutError, RequestsConnectionError))
+
     def _record_error(self, e: Exception):
         self._errors += 1
         logger.warning(
-            f"[SOMNEO] Error #{self._errors}: {type(e).__name__}: {e}", exc_info=True
+            f"[SOMNEO] Error #{self._errors}: {type(e).__name__}: {e}",
+            exc_info=not self._is_timeout(e),
         )
         if self._errors >= self._max_errors:
             self._reload()
@@ -110,7 +117,7 @@ async def track_sensors(somneo: SomneoHolder):
         except Exception as e:
             logger.warning(
                 f"[SENSORS] Error reading sensors, retrying in {SENSOR_RETRY}s: {type(e).__name__}: {e}",
-                exc_info=True,
+                exc_info=not SomneoHolder._is_timeout(e),
             )
             somneo._record_error(
                 e
