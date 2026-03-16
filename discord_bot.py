@@ -386,11 +386,13 @@ async def run_discord_bot(
         await tree.sync()
         logger.info(f"[Discord] Bot ready: {client.user}")
         asyncio.create_task(_consume_queue(client, notify_queue, state))
-        for uid in _ALLOWED_IDS:
-            try:
-                user = await client.fetch_user(uid)
-                await user.send("👋 crispy_sleep online.")
-            except Exception:
-                pass
+        welcome_msg = False
+        if welcome_msg:
+            for uid in _ALLOWED_IDS:
+                try:
+                    user = await client.fetch_user(uid)
+                    await user.send("👋 crispy_sleep online.")
+                except Exception:
+                    pass
 
     await client.start(DISCORD_BOT_TOKEN)

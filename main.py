@@ -76,7 +76,7 @@ async def _check_abort(somneo, event_type: str = "") -> bool:
     return False
 
 
-async def winddown(somneo, start=20, end=0, duration_minutes=30, ctype=3):
+async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
     """Gradually dims Somneo from start → end brightness over duration_minutes."""
     steps = start - end
     if steps <= 0:
@@ -202,6 +202,7 @@ async def event_dispatcher(somneo, notify_queue=None, state=None):
             # Cancel check
             if state is not None and key in state.cancelled:
                 state.clear_cancel(etype, key[1])
+                fired.add(key)
                 logger.info(
                     f"[DISPATCHER] {etype} @ {trigger_at.strftime('%H:%M')} cancelled via Discord"
                 )
