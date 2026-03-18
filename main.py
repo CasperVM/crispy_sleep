@@ -94,9 +94,23 @@ async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
     step_time = (duration_minutes * 60) / steps
     logger.info(f"Wind-down: {start} → {end} over {duration_minutes} min")
 
-    for current in range(start, end, -1):
-        await bedlight(somneo, True, brightness=current, ctype=ctype)
-        await asyncio.sleep(step_time)
+    loop = asyncio.get_event_loop()
+    t0 = loop.time()
+
+    for i, current in enumerate(range(start, end, -1)):
+        target = t0 + step_time * i
+        now = loop.time()
+        # Skip steps we've drifted past
+        if i > 0 and now > target + step_time:
+            logger.info(
+                f"[WINDDOWN] Skipping brightness {current} (drifted {now - target:.1f}s)"
+            )
+            continue
+
+        try:
+            await bedlight(somneo, True, brightness=current, ctype=ctype)
+        except Exception as e:
+            logger.warning(f"[WINDDOWN] Step {current} failed: {type(e).__name__}: {e}")
 
         if current < 10 and USB_LIGHT:
             await usb_off()
@@ -104,7 +118,15 @@ async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
         if await _check_abort(somneo, "winddown"):
             return
 
-    await bedlight(somneo, False)
+        # Sleep until next step's target time
+        remaining = (t0 + step_time * (i + 1)) - loop.time()
+        if remaining > 0:
+            await asyncio.sleep(remaining)
+
+    try:
+        await bedlight(somneo, False)
+    except Exception:
+        pass
     if USB_LIGHT:
         await usb_off()
     await _kaku_off()
@@ -121,12 +143,31 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
     step_time = (duration_minutes * 60) / steps
     logger.info(f"Sunrise: {start} → {end} over {duration_minutes} min")
 
-    for current in range(start, end + 1):
-        await bedlight(somneo, True, brightness=current, ctype=ctype)
-        await asyncio.sleep(step_time)
+    loop = asyncio.get_event_loop()
+    t0 = loop.time()
+
+    for i, current in enumerate(range(start, end + 1)):
+        target = t0 + step_time * i
+        now = loop.time()
+        # Skip steps we've drifted past
+        if i > 0 and now > target + step_time:
+            logger.info(
+                f"[SUNRISE] Skipping brightness {current} (drifted {now - target:.1f}s)"
+            )
+            continue
+
+        try:
+            await bedlight(somneo, True, brightness=current, ctype=ctype)
+        except Exception as e:
+            logger.warning(f"[SUNRISE] Step {current} failed: {type(e).__name__}: {e}")
 
         if await _check_abort(somneo, "sunrise"):
             return
+
+        # Sleep until next step's target time
+        remaining = (t0 + step_time * (i + 1)) - loop.time()
+        if remaining > 0:
+            await asyncio.sleep(remaining)
 
     if USB_LIGHT:
         await usb_on()

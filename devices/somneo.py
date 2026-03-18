@@ -21,16 +21,20 @@ class SomneoHolder:
         self._device = SomneoDevice(ip=ip)
         self._errors = 0
         self._max_errors = 3
+        self._needs_reload = False
 
     def _reload(self):
         logger.info("[SOMNEO] Reloading SomneoDevice...")
         self._device = SomneoDevice(ip=self.ip)
         self._errors = 0
+        self._needs_reload = False
         logger.info("[SOMNEO] Reload complete")
 
     @staticmethod
     def _is_timeout(e: Exception) -> bool:
-        return isinstance(e, (Timeout, ReadTimeoutError, TimeoutError, RequestsConnectionError))
+        return isinstance(
+            e, (Timeout, ReadTimeoutError, TimeoutError, RequestsConnectionError)
+        )
 
     def _record_error(self, e: Exception):
         self._errors += 1
@@ -39,9 +43,20 @@ class SomneoHolder:
             exc_info=not self._is_timeout(e),
         )
         if self._errors >= self._max_errors:
-            self._reload()
+            try:
+                self._reload()
+            except Exception as re:
+                self._needs_reload = True
+                logger.error(f"[SOMNEO] Reload failed: {type(re).__name__}: {re}")
 
     def __getattr__(self, name: str):
+        if self._needs_reload:
+            try:
+                self._reload()
+            except Exception as e:
+                logger.warning(
+                    f"[SOMNEO] Deferred reload failed: {type(e).__name__}: {e}"
+                )
         attr = getattr(self._device, name)
         if not callable(attr):
             return attr
@@ -58,7 +73,7 @@ class SomneoHolder:
         return wrapper
 
 
-@run_in_executor
+@run_in_executor(timeout=60)
 def bedlight(somneo: SomneoHolder, *args, **kwargs):
     for attempt in range(2):
         try:
@@ -69,8 +84,14 @@ def bedlight(somneo: SomneoHolder, *args, **kwargs):
                 f"[BEDLIGHT] Attempt {attempt + 1} failed: {type(e).__name__}: {e}"
             )
             if attempt == 0:
-                somneo._reload()
-    logger.error("[BEDLIGHT] Failed after reload, giving up")
+                try:
+                    somneo._reload()
+                except Exception as re:
+                    somneo._needs_reload = True
+                    logger.error(
+                        f"[BEDLIGHT] Reload also failed: {type(re).__name__}: {re}"
+                    )
+    logger.error("[BEDLIGHT] Failed after 2 attempts, giving up for this step")
 
 
 def _store_sensors(data: dict):
