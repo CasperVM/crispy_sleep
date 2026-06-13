@@ -14,7 +14,7 @@ from db import get_conn
 from devices.somneo import bedlight
 from devices.usb_light_pi3 import usb_on, usb_off
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
-from env_conf import USB_LIGHT, KAKU_ADDRESS, KAKU_COFFEE_ADDRESS
+from env_conf import KAKU_ADDRESS, KAKU_COFFEE_ADDRESS
 
 _PLUG_ADDRESSES = [KAKU_ADDRESS, KAKU_COFFEE_ADDRESS]
 
@@ -54,8 +54,6 @@ async def handle_light_set(request: web.Request) -> web.Response:
 
 async def handle_light_off(request: web.Request) -> web.Response:
     await bedlight(_somneo, False)
-    if USB_LIGHT:
-        await usb_off()
     logger.info("[API] Light off (manual)")
     return _cors(web.json_response({"ok": True}))
 
@@ -130,6 +128,21 @@ async def handle_options(request: web.Request) -> web.Response:
     )
 
 
+
+# USB lamp
+
+async def handle_usb_on(request: web.Request) -> web.Response:
+    await usb_on()
+    logger.info("[API] USB lamp on")
+    return _cors(web.json_response({"ok": True}))
+
+
+async def handle_usb_off(request: web.Request) -> web.Response:
+    await usb_off()
+    logger.info("[API] USB lamp off")
+    return _cors(web.json_response({"ok": True}))
+
+
 # Startup
 
 
@@ -144,6 +157,8 @@ async def run_api(somneo):
     app.router.add_post("/api/scheduling/enable", handle_scheduling_enable)
     app.router.add_post("/api/scheduling/disable", handle_scheduling_disable)
     app.router.add_get("/api/scheduling/status", handle_scheduling_status)
+    app.router.add_post("/api/usb/on", handle_usb_on)
+    app.router.add_post("/api/usb/off", handle_usb_off)
     app.router.add_route("OPTIONS", "/{path_info:.*}", handle_options)
 
     runner = web.AppRunner(app)

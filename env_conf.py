@@ -6,8 +6,6 @@ load_dotenv()
 
 # Somneo
 SOMNEO_IP = os.environ["SOMNEO_IP"]
-USB_LIGHT = os.getenv("USB_LIGHT", "false").lower() == "true"
-
 # KAKU RF plugs
 KAKU_ADDRESS = int(os.getenv("KAKU_ADDRESS", "12345678"))
 KAKU_COFFEE_ADDRESS = int(os.getenv("KAKU_COFFEE_ADDRESS", "87654321"))

@@ -5,13 +5,12 @@ from datetime import datetime, timedelta, timezone
 
 from db import init_db, is_scheduling_enabled, get_conn
 from devices.somneo import SomneoHolder, bedlight, track_sensors
-from devices.usb_light_pi3 import blink_notify, usb_off, usb_on
+from devices.usb_light_pi3 import usb_off
 from devices.kaku import plug_on, plug_off, plug_group_on, plug_group_off
 from gcal import poll_gcal
 from scheduler import get_next_event
 from env_conf import (
     SOMNEO_IP,
-    USB_LIGHT,
     KAKU_UNITS,
     KAKU_USE_GROUP,
     KAKU_COFFEE_UNIT,
@@ -53,8 +52,6 @@ async def _check_abort(somneo, event_type: str = "") -> bool:
     """If scheduling was disabled or routine was cancelled mid-run, clean up and return True."""
     if not is_scheduling_enabled():
         await bedlight(somneo, False)
-        if USB_LIGHT:
-            await usb_off()
         await _kaku_off()
         return True
     if event_type:
@@ -68,8 +65,6 @@ async def _check_abort(somneo, event_type: str = "") -> bool:
                     "DELETE FROM settings WHERE key = ?", (f"cancel_{event_type}",)
                 )
                 await bedlight(somneo, False)
-                if USB_LIGHT:
-                    await usb_off()
                 await _kaku_off()
                 logger.info(f"[ABORT] {event_type} cancelled mid-run")
                 return True
@@ -83,8 +78,6 @@ async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
         logger.warning("winddown: start must be greater than end")
         return
 
-    if USB_LIGHT:
-        await blink_notify()
     await _kaku_on()
 
     # Turn on first.. might be wrong color initially? (BUG)
@@ -112,9 +105,6 @@ async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
         except Exception as e:
             logger.warning(f"[WINDDOWN] Step {current} failed: {type(e).__name__}: {e}")
 
-        if current < 10 and USB_LIGHT:
-            await usb_off()
-
         if await _check_abort(somneo, "winddown"):
             return
 
@@ -127,8 +117,6 @@ async def winddown(somneo, start=23, end=0, duration_minutes=30, ctype=3):
         await bedlight(somneo, False)
     except Exception:
         pass
-    if USB_LIGHT:
-        await usb_off()
     await _kaku_off()
     logger.info("Wind-down complete.")
 
@@ -169,8 +157,6 @@ async def sunrise(somneo, start=0, end=25, duration_minutes=30, ctype=2):
         if remaining > 0:
             await asyncio.sleep(remaining)
 
-    if USB_LIGHT:
-        await usb_on()
     await _kaku_on()
     logger.info("Sunrise complete.")
 
@@ -279,6 +265,7 @@ async def main():
     logger.info("crispy_sleep 🌙 starting up")
     # await turn_off_somneo(somneo)
 
+    await usb_off()  # ensure lamp is off on boot
     state = DispatcherState()
     notify_queue: asyncio.Queue = asyncio.Queue()
 

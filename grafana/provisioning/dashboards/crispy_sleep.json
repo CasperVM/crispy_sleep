@@ -92,13 +92,13 @@
             "options": [
               {
                 "id": "0",
-                "label": "☀️ Sunny Day",
+                "label": "\u2600\ufe0f Sunny Day",
                 "type": "string",
                 "value": "1"
               },
               {
                 "id": "2",
-                "label": "❄️ Nordic White",
+                "label": "\u2744\ufe0f Nordic White",
                 "type": "string",
                 "value": "2"
               }
@@ -146,7 +146,7 @@
           "backgroundColor": "purple",
           "foregroundColor": "yellow",
           "icon": "cloud-upload",
-          "text": "💡 Set Light",
+          "text": "\ud83d\udca1 Set Light",
           "variant": "primary"
         },
         "sync": false,
@@ -256,7 +256,7 @@
           "backgroundColor": "purple",
           "foregroundColor": "yellow",
           "icon": "cloud-upload",
-          "text": "⬛ Off",
+          "text": "\u2b1b Off",
           "variant": "secondary"
         },
         "sync": false,
@@ -347,19 +347,19 @@
             "options": [
               {
                 "id": "1",
-                "label": "Left 💡",
+                "label": "Left \ud83d\udca1",
                 "type": "string",
                 "value": "1"
               },
               {
                 "id": "0",
-                "label": "Right 💡",
+                "label": "Right \ud83d\udca1",
                 "type": "string",
                 "value": "0"
               },
               {
                 "id": "coffee",
-                "label": "☕",
+                "label": "\u2615",
                 "type": "string",
                 "value": "coffee"
               }
@@ -430,12 +430,12 @@
           "backgroundColor": "orange",
           "foregroundColor": "white",
           "icon": "bolt",
-          "text": "🔌 Send",
+          "text": "\ud83d\udd0c Send",
           "variant": "primary"
         },
         "sync": false,
         "update": {
-          "code": "const unitVal = context.panel.elements.find(e => e.id === 'unit')?.value || '0';\nconst action = context.panel.elements.find(e => e.id === 'action')?.value || 'on';\nconst isCoffee = unitVal === 'coffee';\nconst addr_index = isCoffee ? 1 : 0;\nconst unit = isCoffee ? 0 : parseInt(unitVal);\nfetch('http://turnip.lan:8091/api/plug', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ unit, action, addr_index })\n});\ncontext.grafana.notifySuccess(['Done', 'Plug ' + action + ' (' + (isCoffee ? '☕' : 'unit ' + unit) + ')']);",
+          "code": "const unitVal = context.panel.elements.find(e => e.id === 'unit')?.value || '0';\nconst action = context.panel.elements.find(e => e.id === 'action')?.value || 'on';\nconst isCoffee = unitVal === 'coffee';\nconst addr_index = isCoffee ? 1 : 0;\nconst unit = isCoffee ? 0 : parseInt(unitVal);\nfetch('http://turnip.lan:8091/api/plug', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ unit, action, addr_index })\n});\ncontext.grafana.notifySuccess(['Done', 'Plug ' + action + ' (' + (isCoffee ? '\u2615' : 'unit ' + unit) + ')']);",
           "confirm": false,
           "contentType": "application/json",
           "getPayload": "return {}",
@@ -540,7 +540,7 @@
           "backgroundColor": "green",
           "foregroundColor": "white",
           "icon": "bolt",
-          "text": "🔌 All On",
+          "text": "\ud83d\udd0c All On",
           "variant": "primary"
         },
         "sync": false,
@@ -649,7 +649,7 @@
           "backgroundColor": "red",
           "foregroundColor": "white",
           "icon": "bolt",
-          "text": "🔌 All Off",
+          "text": "\ud83d\udd0c All Off",
           "variant": "destructive"
         },
         "sync": false,
@@ -687,7 +687,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 18
       },
       "id": 35,
       "panels": [],
@@ -742,7 +742,7 @@
         "h": 4,
         "w": 3,
         "x": 0,
-        "y": 15
+        "y": 19
       },
       "id": 21,
       "options": {
@@ -787,7 +787,7 @@
         "h": 4,
         "w": 3,
         "x": 3,
-        "y": 15
+        "y": 19
       },
       "id": 22,
       "options": {
@@ -851,7 +851,7 @@
           "backgroundColor": "purple",
           "foregroundColor": "yellow",
           "icon": "cloud-upload",
-          "text": "✅ Enable",
+          "text": "\u2705 Enable",
           "variant": "primary"
         },
         "sync": false,
@@ -896,7 +896,7 @@
         "h": 4,
         "w": 3,
         "x": 6,
-        "y": 15
+        "y": 19
       },
       "id": 23,
       "options": {
@@ -960,7 +960,7 @@
           "backgroundColor": "purple",
           "foregroundColor": "yellow",
           "icon": "cloud-upload",
-          "text": "🚫 Disable",
+          "text": "\ud83d\udeab Disable",
           "variant": "destructive"
         },
         "sync": false,
@@ -999,7 +999,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 23
       },
       "id": 30,
       "panels": [],
@@ -1060,7 +1060,7 @@
         "h": 9,
         "w": 16,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "id": 31,
       "options": {
@@ -1167,7 +1167,7 @@
         "h": 14,
         "w": 8,
         "x": 0,
-        "y": 29
+        "y": 33
       },
       "id": 1,
       "options": {
@@ -1194,7 +1194,7 @@
           ]
         }
       ],
-      "title": "Temperature (°C)",
+      "title": "Temperature (\u00b0C)",
       "type": "timeseries"
     },
     {
@@ -1266,7 +1266,7 @@
         "h": 14,
         "w": 8,
         "x": 8,
-        "y": 29
+        "y": 33
       },
       "id": 2,
       "options": {
@@ -1393,7 +1393,7 @@
         "h": 14,
         "w": 8,
         "x": 0,
-        "y": 43
+        "y": 47
       },
       "id": 3,
       "options": {
@@ -1520,7 +1520,7 @@
         "h": 14,
         "w": 8,
         "x": 8,
-        "y": 43
+        "y": 47
       },
       "id": 4,
       "options": {
@@ -1549,6 +1549,236 @@
       ],
       "title": "Noise Level (dB)",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 37,
+      "title": "USB Lamp",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "P536889FD585DC862"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 15
+      },
+      "id": 38,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "Please confirm to update changed values",
+          "cancel": "Cancel",
+          "columns": {
+            "include": [
+              "name",
+              "oldValue",
+              "newValue"
+            ],
+            "name": "Label",
+            "newValue": "New Value",
+            "oldValue": "Old Value"
+          },
+          "confirm": "Confirm",
+          "elementDisplayMode": "modified",
+          "title": "Confirm update request"
+        },
+        "elementValueChanged": "",
+        "initial": {
+          "code": "context.panel.enableSubmit();",
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "-",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "center",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "none"
+        },
+        "reset": {
+          "backgroundColor": "purple",
+          "foregroundColor": "yellow",
+          "icon": "process",
+          "text": "Reset",
+          "variant": "hidden"
+        },
+        "resetAction": {
+          "code": "if (context.panel.response) {\n  context.grafana.notifySuccess(['Update', 'Values updated successfully.']);\n  context.grafana.refresh();\n} else {\n  context.grafana.notifyError(['Update', 'An error occurred updating values.']);\n}",
+          "confirm": false,
+          "getPayload": "return {}",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "backgroundColor": "green",
+          "foregroundColor": "white",
+          "icon": "bolt",
+          "text": "\ud83d\udca1 Lamp On",
+          "variant": "primary"
+        },
+        "sync": false,
+        "update": {
+          "code": "fetch('http://turnip.lan:8091/api/usb/on', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); context.grafana.notifySuccess(['Done', 'Lamp on']);",
+          "confirm": false,
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "header": [],
+          "method": "-",
+          "payload": {},
+          "payloadMode": "all",
+          "url": "http://turnip.lan:8091/api/usb/on"
+        },
+        "updateEnabled": "manual"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Lamp On",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "P536889FD585DC862"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 15
+      },
+      "id": 39,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "Please confirm to update changed values",
+          "cancel": "Cancel",
+          "columns": {
+            "include": [
+              "name",
+              "oldValue",
+              "newValue"
+            ],
+            "name": "Label",
+            "newValue": "New Value",
+            "oldValue": "Old Value"
+          },
+          "confirm": "Confirm",
+          "elementDisplayMode": "modified",
+          "title": "Confirm update request"
+        },
+        "elementValueChanged": "",
+        "initial": {
+          "code": "context.panel.enableSubmit();",
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "-",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "center",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "none"
+        },
+        "reset": {
+          "backgroundColor": "purple",
+          "foregroundColor": "yellow",
+          "icon": "process",
+          "text": "Reset",
+          "variant": "hidden"
+        },
+        "resetAction": {
+          "code": "if (context.panel.response) {\n  context.grafana.notifySuccess(['Update', 'Values updated successfully.']);\n  context.grafana.refresh();\n} else {\n  context.grafana.notifyError(['Update', 'An error occurred updating values.']);\n}",
+          "confirm": false,
+          "getPayload": "return {}",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "backgroundColor": "red",
+          "foregroundColor": "white",
+          "icon": "bolt",
+          "text": "\ud83c\udf11 Lamp Off",
+          "variant": "primary"
+        },
+        "sync": false,
+        "update": {
+          "code": "fetch('http://turnip.lan:8091/api/usb/off', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); context.grafana.notifySuccess(['Done', 'Lamp off']);",
+          "confirm": false,
+          "contentType": "application/json",
+          "getPayload": "return {}",
+          "header": [],
+          "method": "-",
+          "payload": {},
+          "payloadMode": "all",
+          "url": "http://turnip.lan:8091/api/usb/off"
+        },
+        "updateEnabled": "manual"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value WHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Lamp Off",
+      "type": "volkovlabs-form-panel"
     }
   ],
   "preload": false,
